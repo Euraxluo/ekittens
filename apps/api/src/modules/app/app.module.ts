@@ -1,4 +1,4 @@
-import {Module} from "@nestjs/common";
+import {Module, Controller, Get} from "@nestjs/common";
 import {ConfigModule, ConfigService} from "@nestjs/config";
 import {TypeOrmModule} from "@nestjs/typeorm";
 import {BullModule} from "@nestjs/bull";
@@ -13,6 +13,22 @@ import {LeaderboardModule} from "@modules/leaderboard";
 import {ChatModule} from "@modules/chat";
 
 import {AppGateway} from "./app.gateway";
+
+@Controller()
+export class AppController {
+  @Get()
+  getHello() {
+    return { message: 'Hello API is working!' };
+  }
+
+  @Get('health')
+  health() {
+    return {
+      status: 'ok',
+      timestamp: new Date().toISOString()
+    };
+  }
+}
 
 @Module({
   imports: [
@@ -77,5 +93,6 @@ import {AppGateway} from "./app.gateway";
     ChatModule,
   ],
   providers: [AppGateway],
+  controllers: [AppController]
 })
 export class AppModule {}
