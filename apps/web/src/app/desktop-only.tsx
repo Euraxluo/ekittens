@@ -13,7 +13,7 @@ export const DecktopOnlyRestrict: React.FC<React.PropsWithChildren> = ({
   useEffect(() => {
     const adjust = () => {
       const width = window.document.body.clientWidth;
-      const minWidth = 1400;
+      const minWidth = 200;
 
       setShow(width >= minWidth);
     };

@@ -1,6 +1,7 @@
 import {
   ConnectedSocket,
   MessageBody,
+  OnGatewayInit,
   SubscribeMessage,
   WebSocketGateway,
   WebSocketServer,
@@ -8,7 +9,7 @@ import {
 import {nanoid} from "nanoid";
 import {Server, Socket} from "socket.io";
 
-import {ack} from "@lib/ws";
+import {ack, WsService} from "@lib/ws";
 import {User} from "@modules/user";
 import {JoinChatDto, SendMessageDto} from "./dtos";
 import {events} from "./lib/events";
@@ -18,13 +19,34 @@ const room = {
 };
 
 @WebSocketGateway()
-export class ChatGateway {
+export class ChatGateway implements OnGatewayInit {
   @WebSocketServer()
   server: Server;
+  private service: WsService;
+
+  async afterInit(server: Server) {
+    console.log('[ChatGateway] Initializing with server:', {
+      hasServer: !!server,
+      adapter: !!server?.adapter,
+    });
+    this.service = new WsService(server);
+  }
 
   @SubscribeMessage(events.server.JOIN_CHAT)
   joinChat(@ConnectedSocket() socket: Socket, @MessageBody() dto: JoinChatDto) {
-    socket.join(`${room.prefix}:${dto.chatId}`);
+    console.log(`[ChatGateway] User ${socket.request.session.user.id} joining chat ${dto.chatId}`);
+    const chatId = `${room.prefix}:${dto.chatId}`;
+    socket.join(chatId);
+
+    this.service.setupDisconnectHandler(
+      socket,
+      socket.request.session.user.id,
+      () => {
+        console.log(`[ChatGateway] User ${socket.request.session.user.id} leaving chat ${dto.chatId}`);
+        socket.leave(chatId);
+      },
+      `chat:${chatId}`
+    );
 
     return ack({ok: true});
   }

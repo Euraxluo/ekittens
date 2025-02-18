@@ -22,7 +22,9 @@ async function bootstrap(): Promise<void> {
   app.useWebSocketAdapter(new WebSocketAdapter(app, true));
   app.useGlobalPipes(new ValidationPipe());
 
-  await app.listen(8000);
+  const port = process.env.PORT || 8000;
+  await app.listen(port);
+  console.log(`Application is running on port ${port}`);
 }
 
 clusterize(bootstrap);

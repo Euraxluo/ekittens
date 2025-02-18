@@ -6,5 +6,8 @@ export const redisConfig = registerAs("redis", () => {
   return {
     host: env.REDIS_HOST,
     port: parseInt(env.REDIS_PORT, 10),
+    password: env.REDIS_PASSWORD,
+    username: "default",
+    tls: {},
   };
 });

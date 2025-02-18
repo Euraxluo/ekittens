@@ -137,28 +137,33 @@ export class PublicMatchGateway implements OnGatewayInit {
           sockets.forEach((socket) => {
             socket.join(ongoing.id);
 
-            socket.on("disconnect", () => {
-              const sockets = this.service
-                .getSocketsByUserId(user.id)
-                .filter((s) => s.id !== socket.id);
+            this.service.setupDisconnectHandler(
+              socket,
+              user.id,
+              () => {
+                const sockets = this.service
+                  .getSocketsByUserId(user.id)
+                  .filter((s) => s.id !== socket.id);
 
-              const isDisconnected = sockets.length === 0;
+                const isDisconnected = sockets.length === 0;
 
-              if (isDisconnected) {
-                this.server.to(match.id).emit(events.client.PLAYER_DISCONNECT, {
-                  playerId: user.id,
-                });
+                if (isDisconnected) {
+                  this.server.to(match.id).emit(events.client.PLAYER_DISCONNECT, {
+                    playerId: user.id,
+                  });
 
-                this.server.to(match.id).emit(chatEvents.client.NEW_MESSAGE, {
-                  message: {
-                    id: nanoid(),
-                    sender: {username: "SERVER"},
-                    text: `${player.user.username} disconnected`,
-                    createdAt: Date.now(),
-                  },
-                });
-              }
-            });
+                  this.server.to(match.id).emit(chatEvents.client.NEW_MESSAGE, {
+                    message: {
+                      id: nanoid(),
+                      sender: {username: "SERVER"},
+                      text: `${player.user.username} disconnected`,
+                      createdAt: Date.now(),
+                    },
+                  });
+                }
+              },
+              `public-match:${match.id}`
+            );
           });
         }
 
@@ -220,22 +225,27 @@ export class PublicMatchGateway implements OnGatewayInit {
     const sockets = this.service.getSocketsByUserId(user.id);
 
     sockets.forEach((socket) => {
-      socket.on("disconnect", async () => {
-        const sockets = this.service
-          .getSocketsByUserId(user.id)
-          .filter((s) => s.id !== socket.id);
+      this.service.setupDisconnectHandler(
+        socket,
+        user.id,
+        async () => {
+          const sockets = this.service
+            .getSocketsByUserId(user.id)
+            .filter((s) => s.id !== socket.id);
 
-        const isDisconnected = sockets.length === 0;
+          const isDisconnected = sockets.length === 0;
 
-        if (isDisconnected) {
-          const queue =
-            (await this.redisService.get<Enqueued[]>(RP.QUEUE)) || [];
+          if (isDisconnected) {
+            const queue =
+              (await this.redisService.get<Enqueued[]>(RP.QUEUE)) || [];
 
-          const updated = queue.filter((enqueued) => enqueued.id !== user.id);
+            const updated = queue.filter((enqueued) => enqueued.id !== user.id);
 
-          await this.redisService.set(RP.QUEUE, updated);
-        }
-      });
+            await this.redisService.set(RP.QUEUE, updated);
+          }
+        },
+        'queue'
+      );
     });
 
     const ids = sockets.map((socket) => socket.id);

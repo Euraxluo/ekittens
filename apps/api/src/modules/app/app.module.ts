@@ -27,6 +27,9 @@ import {AppGateway} from "./app.gateway";
       useFactory: (configService: ConfigService) => ({
         host: configService.get<string>("redis.host"),
         port: configService.get<number>("redis.port"),
+        password: configService.get<string>("redis.password"),
+        username: configService.get<string>("redis.username"),
+        tls: {},
       }),
     }),
     BullModule.forRootAsync({
@@ -36,6 +39,9 @@ import {AppGateway} from "./app.gateway";
         redis: {
           host: configService.get<string>("redis.host"),
           port: configService.get<number>("redis.port"),
+          password: configService.get<string>("redis.password"),
+          username: configService.get<string>("redis.username"),
+          tls: {},
         },
       }),
     }),
@@ -48,9 +54,19 @@ import {AppGateway} from "./app.gateway";
         port: configService.get<number>("db.port"),
         username: configService.get<string>("db.username"),
         password: configService.get<string>("db.password"),
-        database: configService.get<string>("db.name"),
+        database: configService.get<string>("db.database"),
         synchronize: configService.get<boolean>("db.synchronize"),
         entities: [User, Match, MatchPlayer, Relationship],
+        ssl: {
+          require: true,
+          rejectUnauthorized: false
+        },
+        extra: {
+          ssl: {
+            require: true,
+            rejectUnauthorized: false
+          }
+        }
       }),
     }),
     AuthModule,

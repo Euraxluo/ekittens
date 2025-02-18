@@ -888,19 +888,24 @@ export class MatchGateway implements OnGatewayInit {
 
     socket.join(match.id);
 
-    socket.on("disconnect", () => {
-      const sockets = this.service
-        .getSocketsByUserId(user.id)
-        .filter((s) => s.id !== socket.id);
+    this.service.setupDisconnectHandler(
+      socket,
+      user.id,
+      () => {
+        const sockets = this.service
+          .getSocketsByUserId(user.id)
+          .filter((s) => s.id !== socket.id);
 
-      const isDisconnected = sockets.length === 0;
+        const isDisconnected = sockets.length === 0;
 
-      if (isDisconnected) {
-        this.server.to(match.id).emit(events.client.PLAYER_DISCONNECT, {
-          playerId: user.id,
-        });
-      }
-    });
+        if (isDisconnected) {
+          this.server.to(match.id).emit(events.client.PLAYER_DISCONNECT, {
+            playerId: user.id,
+          });
+        }
+      },
+      `match:${match.id}`
+    );
 
     return ack({
       ok: true,

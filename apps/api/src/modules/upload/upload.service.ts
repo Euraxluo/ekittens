@@ -1,32 +1,36 @@
 import {Injectable} from "@nestjs/common";
 import {ConfigService} from "@nestjs/config";
-import {S3} from "aws-sdk";
+import {S3Client, PutObjectCommand} from "@aws-sdk/client-s3";
 import {nanoid} from "nanoid";
 
 @Injectable()
 export class UploadService {
   constructor(private readonly configService: ConfigService) {}
 
-  private readonly s3: S3 = new S3({
-    accessKeyId: this.configService.get("s3.accessKey"),
-    secretAccessKey: this.configService.get("s3.secretAccessKey"),
+  private readonly s3Client = new S3Client({
+    credentials: {
+      accessKeyId: this.configService.get("s3.accessKey"),
+      secretAccessKey: this.configService.get("s3.secretAccessKey"),
+    },
+    endpoint: this.configService.get("s3.endpoint"),
+    forcePathStyle: true,
+    region: this.configService.get("s3.region"),
   });
 
-  upload(buffer: Buffer, mimetype: string): Promise<S3.ManagedUpload.SendData> {
-    return new Promise((resolve) => {
-      this.s3.upload(
-        {
-          ContentType: mimetype,
-          Bucket: this.configService.get("s3.bucketName"),
-          Key: nanoid(),
-          Body: buffer,
-        },
-        (error, data) => {
-          if (error) throw error;
-
-          resolve(data);
-        },
-      );
+  async upload(buffer: Buffer, mimetype: string) {
+    const key = nanoid();
+    const command = new PutObjectCommand({
+      Bucket: this.configService.get("s3.bucketName"),
+      Key: key,
+      Body: buffer,
+      ContentType: mimetype,
     });
+
+    const response = await this.s3Client.send(command);
+    return {
+      Key: key,
+      Location: `${this.configService.get("s3.endpoint")}/${this.configService.get("s3.bucketName")}/${key}`,
+      ...response,
+    };
   }
 }
