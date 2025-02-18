@@ -268,3 +268,4 @@ fabric.properties
 prod/
 dist/
 build/
+.vercel
